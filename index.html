@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>廣東話賀卡相冊生成器 | Cantonese Greetings Album Builder</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTML2PDF Library for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts for Traditional Cantonese Aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+HK:wght@300;400;500;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hkred: '#d92b2b',
+                        hkgold: '#e5b85e',
+                        hkdarkgold: '#b8860b',
+                        jade: '#1b4d3e',
+                        neonpink: '#ff2a75',
+                        neonyellow: '#ffe600'
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans HK"', 'sans-serif'],
+                        calligraphy: ['"Ma Shan Zheng"', 'cursive'],
+                        festive: ['"ZCOOL XiaoWei"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar and theme styling */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .font-calligraphy { font-family: 'Ma Shan Zheng', cursive; }
+        .font-festive { font-family: 'ZCOOL XiaoWei', serif; }
+        
+        /* Album template paper textures & styles */
+        .theme-red-gold {
+            background: linear-gradient(135deg, #7a0000 0%, #a81212 50%, #540000 100%);
+            color: #fff8e7;
+        }
+        .theme-jade {
+            background: linear-gradient(135deg, #0f382c 0%, #1b4d3e 50%, #0a261e 100%);
+            color: #f0fdf4;
+        }
+        .theme-neon {
+            background: #0f172a;
+            color: #f8fafc;
+            border: 2px solid #ff2a75;
+            box-shadow: 0 0 15px rgba(255, 42, 117, 0.4);
+        }
+        .theme-minimal {
+            background: #ffffff;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+        }
+        .theme-pastel {
+            background: linear-gradient(135deg, #fff1f2 0%, #fef3c7 50%, #e0f2fe 100%);
+            color: #334155;
+        }
+
+        /* Photo Filters */
+        .filter-normal { filter: none; }
+        .filter-vintage { filter: sepia(0.5) contrast(1.1) saturate(1.2); }
+        .filter-neon { filter: saturate(1.8) contrast(1.3) hue-rotate(-10deg); }
+        .filter-warm { filter: sepia(0.25) saturate(1.4) brightness(1.05); }
+        .filter-mono { filter: grayscale(1) contrast(1.2); }
+
+        /* Responsive PDF Preview Container */
+        .page-aspect-ratio {
+            width: 100%;
+            aspect-ratio: 1 / 1.414; /* A4 Ratio */
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.95; transform: scale(1.01); }
+        }
+        .pulse-effect { animation: pulse-subtle 3s infinite ease-in-out; }
+
+        /* Print formatting for native PDF export */
+        @media print {
+            body * { visibility: hidden; }
+            #print-pdf-stage, #print-pdf-stage * { visibility: visible; }
+            #print-pdf-stage {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .pdf-page-break {
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-hkgold selection:text-slate-900">
+
+    <!-- Main Top Header -->
+    <header class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-amber-400 flex items-center justify-center text-white font-calligraphy text-xl shadow-lg shadow-red-600/30">
+                粵
+            </div>
+            <div>
+                <h1 class="text-base font-bold bg-gradient-to-r from-amber-200 via-amber-400 to-red-400 bg-clip-text text-transparent">
+                    廣東話賀卡相冊生成器
+                </h1>
+                <p class="text-[10px] text-slate-400">Honor Magic Pro 7 專屬設計 · 粵語祝福匯出</p>
+            </div>
+        </div>
+        
+        <button onclick="exportToPDF()" id="export-btn" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-red-600 text-white text-xs font-semibold shadow-md hover:brightness-110 active:scale-95 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-file-pdf text-sm"></i>
+            <span>匯出 PDF</span>
+        </button>
+    </header>
+
+    <!-- App Container -->
+    <main class="flex-1 max-w-md w-full mx-auto flex flex-col pb-20">
+        
+        <!-- Tab Navigation Bar -->
+        <nav class="flex border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-[53px] z-40 text-xs">
+            <button onclick="switchTab('photos')" id="tab-photos" class="tab-btn flex-1 py-3 text-center border-b-2 border-amber-400 font-bold text-amber-400 transition flex flex-col items-center gap-1">
+                <i class="fa-solid fa-images text-sm"></i>
+                <span>1. 選擇相片</span>
+            </button>
+            <button onclick="switchTab('wishes')" id="tab-wishes" class="tab-btn flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 font-medium transition flex flex-col items-center gap-1">
+                <i class="fa-solid fa-comment-dots text-sm"></i>
+                <span>2. 粵語賀詞</span>
+            </button>
+            <button onclick="switchTab('editor')" id="tab-editor" class="tab-btn flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 font-medium transition flex flex-col items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+                <span>3. 排版與貼紙</span>
+            </button>
+            <button onclick="switchTab('preview')" id="tab-preview" class="tab-btn flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 font-medium transition flex flex-col items-center gap-1">
+                <i class="fa-solid fa-book-open text-sm"></i>
+                <span>4. 相冊預覽</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: Photos Management -->
+        <section id="sec-photos" class="tab-content p-4 space-y-4">
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 shadow-md">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 匯入你的相片
+                    </h2>
+                    <span id="photo-count" class="text-xs bg-slate-700 text-amber-300 px-2.5 py-0.5 rounded-full font-semibold">0 / 6 張相片</span>
+                </div>
+                
+                <!-- Upload Drop Zone -->
+                <label for="image-input" class="border-2 border-dashed border-slate-600 hover:border-amber-400 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900/70 transition text-center group">
+                    <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover:scale-110 transition mb-2">
+                        <i class="fa-solid fa-plus text-xl"></i>
+                    </div>
+                    <span class="text-xs text-slate-200 font-medium">點擊上載相片 或 拖放至此</span>
+                    <span class="text-[10px] text-slate-400 mt-1">支援 JPG, PNG, WEBP (建議選取 2 至 6 張相片)</span>
+                    <input type="file" id="image-input" multiple accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                </label>
+            </div>
+
+            <!-- Uploaded Photos Grid / List -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-semibold text-slate-300">已選取相片</h3>
+                    <button onclick="clearAllPhotos()" class="text-[11px] text-red-400 hover:underline">清空所有</button>
+                </div>
+
+                <div id="photos-grid" class="grid grid-cols-3 gap-2.5">
+                    <!-- Photo thumbnails dynamically loaded here -->
+                    <div class="col-span-3 py-8 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-800 text-slate-500 text-xs">
+                        未有上載任何相片，請先在上載區選取相片。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-loaded Preset Photos for Quick Testing -->
+            <div class="bg-slate-800/30 rounded-xl p-3 border border-slate-700/40">
+                <span class="text-xs text-slate-400 block mb-2 font-medium">💡 沒有相片？一鍵載入示範樣板圖：</span>
+                <button onclick="loadDemoPhotos()" class="w-full py-2 bg-slate-700/80 hover:bg-slate-700 text-amber-300 text-xs rounded-lg font-medium transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic"></i> 載入廣東話主題範例相片
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 2: Cantonese Wishes & Greetings Selector -->
+        <section id="sec-wishes" class="tab-content p-4 space-y-4 hidden">
+            <!-- Smart Cantonese Wish Generator -->
+            <div class="bg-gradient-to-br from-amber-950/40 to-red-950/40 border border-amber-500/30 rounded-2xl p-4 shadow-md space-y-3">
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-amber-200">粵語 AI 智慧賀詞助手</h2>
+                        <p class="text-[10px] text-amber-300/70">自動生成地道廣東話祝福語</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <label class="text-[11px] text-slate-300 block mb-1">對象 (Target)</label>
+                        <select id="wish-target" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-amber-400 outline-none">
+                            <option value="長輩/父母">長輩 / 父母</option>
+                            <option value="朋友/閨蜜">朋友 / 閨蜜</option>
+                            <option value="同事/老闆">同事 / 老闆</option>
+                            <option value="情侶/伴侶">情侶 / 伴侶</option>
+                            <option value="晚輩/小朋友">晚輩 / 小朋友</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[11px] text-slate-300 block mb-1">場合 (Occasion)</label>
+                        <select id="wish-occasion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:border-amber-400 outline-none">
+                            <option value="日常問候">日常問候 / 關懷</option>
+                            <option value="生日祝壽">生日祝壽</option>
+                            <option value="農曆新年">農曆新年</option>
+                            <option value="中秋/節慶">中秋 / 節慶</option>
+                            <option value="感謝/加油">感謝 / 加油打氣</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="generateCantoneseWish()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-red-500 text-white font-semibold text-xs shadow-md hover:brightness-110 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-sparkles"></i>
+                    <span>一鍵生成粵語賀詞</span>
+                </button>
+            </div>
+
+            <!-- Custom Text Input Box -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-2">
+                <label class="text-xs font-bold text-slate-200 block">當前選用之賀詞 (點擊下方範本替換)</label>
+                <textarea id="current-selected-wish" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-amber-200 font-medium focus:border-amber-400 outline-none resize-none" placeholder="喺呢度輸入或選取你嘅廣東話祝福..."></textarea>
+                <div class="flex justify-end">
+                    <button onclick="applyWishToCurrentPage()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition">
+                        套用至目前頁面
+                    </button>
+                </div>
+            </div>
+
+            <!-- Categorized Cantonese Phrases Accordion/List -->
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-300">地道廣東話經典賀詞庫</h3>
+                
+                <div class="space-y-2 text-xs" id="cantonese-presets-container">
+                    <!-- JS populated preset phrases -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Album Page Editor & Design Tools -->
+        <section id="sec-editor" class="tab-content p-4 space-y-4 hidden">
+            <!-- Photo Slot Selector for Current Page -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-amber-300 flex items-center gap-2">
+                        <i class="fa-solid fa-image"></i> 選取當前頁面相片
+                    </h2>
+                    <span class="text-[10px] text-slate-400">點擊位置即可選擇相片</span>
+                </div>
+
+                <div id="editor-photo-slots" class="grid grid-cols-2 gap-3">
+                    <!-- Photo slots dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Photo Filter Selector -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-2">
+                <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> 相片濾鏡效果
+                </h2>
+                <div class="grid grid-cols-5 gap-1.5 text-[11px]">
+                    <button onclick="setPhotoFilter('filter-normal')" class="py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-medium">原圖</button>
+                    <button onclick="setPhotoFilter('filter-vintage')" class="py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-medium text-amber-300">懷舊港風</button>
+                    <button onclick="setPhotoFilter('filter-neon')" class="py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-medium text-pink-400">旺角霓虹</button>
+                    <button onclick="setPhotoFilter('filter-warm')" class="py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-medium text-amber-400">溫馨暖色</button>
+                    <button onclick="setPhotoFilter('filter-mono')" class="py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 text-center font-medium text-slate-300">經典黑白</button>
+                </div>
+            </div>
+
+            <!-- Theme Selection -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                <h2 class="text-xs font-bold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i> 選擇相冊主題風格
+                </h2>
+                
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                    <button onclick="setAlbumTheme('red-gold')" class="p-2.5 rounded-xl border border-red-500/50 bg-red-900/40 text-red-200 font-semibold text-center hover:scale-105 transition">
+                        🏮 喜慶紅金
+                    </button>
+                    <button onclick="setAlbumTheme('jade')" class="p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-200 font-semibold text-center hover:scale-105 transition">
+                        翡翠雅致
+                    </button>
+                    <button onclick="setAlbumTheme('neon')" class="p-2.5 rounded-xl border border-pink-500/50 bg-slate-900 text-pink-300 font-semibold text-center hover:scale-105 transition">
+                        🌃 港式霓虹
+                    </button>
+                    <button onclick="setAlbumTheme('pastel')" class="p-2.5 rounded-xl border border-amber-300/50 bg-amber-100/10 text-amber-200 font-semibold text-center hover:scale-105 transition">
+                        🌸 溫馨馬卡龍
+                    </button>
+                    <button onclick="setAlbumTheme('minimal')" class="p-2.5 rounded-xl border border-slate-400/50 bg-white/10 text-slate-200 font-semibold text-center hover:scale-105 transition">
+                        📑 極簡白典雅
+                    </button>
+                </div>
+            </div>
+
+            <!-- Font Selector -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-2">
+                <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-font"></i> 賀詞書法字體
+                </h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setFontStyle('font-calligraphy')" class="py-2 bg-slate-900 rounded-lg text-xs font-calligraphy text-amber-300 border border-slate-700">
+                        馬山正體
+                    </button>
+                    <button onclick="setFontStyle('font-festive')" class="py-2 bg-slate-900 rounded-lg text-xs font-festive text-amber-300 border border-slate-700">
+                        酷小微體
+                    </button>
+                    <button onclick="setFontStyle('font-sans')" class="py-2 bg-slate-900 rounded-lg text-xs font-sans font-bold text-amber-300 border border-slate-700">
+                        黑體標準
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page Layout Preset Selector -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells-large"></i> 當前頁面版型
+                    </h2>
+                    <span id="current-editing-page-label" class="text-[11px] text-amber-400 font-bold">頁面 1</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                    <button onclick="setPageLayout('layout-single')" class="p-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-amber-400 transition text-center">
+                        <i class="fa-regular fa-image text-lg block mb-1 text-amber-400"></i>
+                        單圖卡片
+                    </button>
+                    <button onclick="setPageLayout('layout-dual')" class="p-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-amber-400 transition text-center">
+                        <i class="fa-solid fa-table-columns text-lg block mb-1 text-amber-400"></i>
+                        雙圖對比
+                    </button>
+                    <button onclick="setPageLayout('layout-banner')" class="p-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-amber-400 transition text-center">
+                        <i class="fa-solid fa-quote-left text-lg block mb-1 text-amber-400"></i>
+                        金句為主
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stickers & Cultural Elements Picker -->
+            <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-3">
+                <h2 class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-icons"></i> 添置港式/節慶裝飾貼紙
+                </h2>
+                <div id="stickers-picker" class="flex flex-wrap gap-2 text-xl">
+                    <!-- Interactive stickers dynamically attached -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: Album Live Preview & PDF Stage -->
+        <section id="sec-preview" class="tab-content p-4 space-y-4 hidden">
+            <!-- Page Controller Bar -->
+            <div class="flex items-center justify-between bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700">
+                <button onclick="prevPage()" class="px-3 py-1 rounded-lg bg-slate-700 text-xs font-semibold hover:bg-slate-600 transition disabled:opacity-50" id="btn-prev-page">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> 上一頁
+                </button>
+                
+                <span id="page-indicator" class="text-xs font-bold text-amber-300">第 1 / 1 頁</span>
+
+                <button onclick="nextPage()" class="px-3 py-1 rounded-lg bg-slate-700 text-xs font-semibold hover:bg-slate-600 transition disabled:opacity-50" id="btn-next-page">
+                    下一頁 <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+
+            <!-- PDF Page Rendering Viewport Container -->
+            <div class="w-full flex justify-center">
+                <!-- Outer bounds matching Honor Magic 7 Pro view -->
+                <div id="album-pdf-container" class="w-full max-w-[360px] shadow-2xl rounded-2xl overflow-hidden transition-all duration-300">
+                    <!-- Dynamic Page Element rendering -->
+                    <div id="active-page-render" class="page-aspect-ratio theme-red-gold p-5 flex flex-col justify-between relative overflow-hidden">
+                        <!-- Dynamic content filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Direct Download & PDF Export Options -->
+            <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700 space-y-2">
+                <button onclick="exportToPDF()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-red-600 text-white text-xs font-bold shadow-lg hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-base"></i>
+                    <span>直接下載 PDF 賀卡相冊</span>
+                </button>
+                
+                <button onclick="triggerNativePrint()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>系統原生地圖 / 列印儲存為 PDF (備用)</span>
+                </button>
+            </div>
+
+            <!-- Quick Action Floating Bar for Page Management -->
+            <div class="flex gap-2">
+                <button onclick="addNewPage()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-medium text-xs rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i> 新增頁面
+                </button>
+                <button onclick="deleteCurrentPage()" class="px-4 py-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-300 font-medium text-xs rounded-xl border border-red-800/50 transition flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-trash"></i> 刪除此頁
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Photo Selection Modal Drawer -->
+    <div id="photo-picker-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-4 max-h-[80vh] flex flex-col space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-photo-film"></i> 選擇欲放入相頁之相片
+                </h3>
+                <button onclick="closePhotoPickerModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-[11px] text-slate-400">點擊下方任一相片，即刻替換當前頁面相框：</p>
+            <div id="modal-photos-grid" class="grid grid-cols-3 gap-2 overflow-y-auto max-h-60 p-1">
+                <!-- Dynamically populated photos -->
+            </div>
+            <div class="pt-2 border-t border-slate-800 flex justify-between items-center">
+                <label for="image-input-modal" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg text-xs font-semibold cursor-pointer border border-slate-700">
+                    <i class="fa-solid fa-plus mr-1"></i> 上載新相片
+                    <input type="file" id="image-input-modal" multiple accept="image/*" class="hidden" onchange="handleModalImageUpload(event)">
+                </label>
+                <button onclick="closePhotoPickerModal()" class="px-4 py-1.5 bg-amber-500 text-slate-950 rounded-lg text-xs font-bold">
+                    完成
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Generation Progress Modal -->
+    <div id="pdf-loading-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 text-center max-w-xs w-full shadow-2xl space-y-4">
+            <div class="w-12 h-12 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div>
+                <h3 class="text-sm font-bold text-amber-200" id="pdf-progress-title">正在生成高清 PDF...</h3>
+                <p class="text-xs text-slate-400 mt-1" id="pdf-progress-status">正在轉換相片數據，請稍候...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Stage for Print PDF rendering -->
+    <div id="print-pdf-stage" class="hidden"></div>
+
+    <!-- Toast Notification Message -->
+    <div id="toast-msg" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-800/95 border border-amber-400 text-amber-200 px-4 py-2.5 rounded-xl shadow-xl text-xs flex items-center space-x-2 transition-all duration-300 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-circle-info text-amber-400"></i>
+        <span id="toast-text">消息提示</span>
+    </div>
+
+    <script>
+        // Default Cantonese preset repository categorized by situation
+        const cantonesePhrases = {
+            "日常問候": [
+                { title: "早晨關懷", text: "早晨！食咗飯未啊？祝你今日事事順利，心情靚靚！" },
+                { title: "得閒飲茶", text: "得閒一齊出嚟飲茶食蝦餃！祝你身體健康，常樂安康！" },
+                { title: "開心無憂", text: "祝你天天開心，食得瞓得，無憂無慮，幸福滿滿！" }
+            ],
+            "生日祝壽": [
+                { title: "歲歲今朝", text: "年年有今日，歲歲有今朝！祝你生日快樂，越來越靚/型！" },
+                { title: "吉星高照", text: "祝你生日快樂！福星高照，心想事成，萬事勝意！" },
+                { title: "青春常駐", text: "祝你長命百歲，青春常駐，賺到盆滿缽滿！" }
+            ],
+            "農曆新年": [
+                { title: "恭喜發財", text: "恭喜發財，利是逗來！祝你龍馬精神，生意興隆，財源廣進！" },
+                { title: "大吉大利", text: "大吉大利！步步高升，合家平安，好運連連！" },
+                { title: "出入平安", text: "祝你新一年身體健康，出入平安，吉星拱照！" }
+            ],
+            "中秋節慶": [
+                { title: "花好月圓", text: "花好月圓，中秋節快樂！祝你合家團圓，甜甜蜜蜜！" },
+                { title: "團圓安康", text: "人月兩團圓！祝你同家人節日快樂，幸福安康！" }
+            ],
+            "感謝/打氣": [
+                { title: "加油打氣", text: "加油啊！頂住！無論如何我都會支持你，辛苦啦！" },
+                { title: "感恩有你", text: "多謝你一直以來嘅照顧同支持，點滴在心頭，感恩有你！" }
+            ]
+        };
+
+        // Available stickers for decoration
+        const availableStickers = ['🧧', '🥟', '🧋', '🦁', '🀄', '🇭🇰', '🌕', '🌸', '🎁', '✨', '❤️', '🍵', '🍊', '🎉'];
+
+        // Core Album State with filters and clear slot management
+        let albumState = {
+            theme: 'theme-red-gold',
+            font: 'font-calligraphy',
+            currentPageIndex: 0,
+            pages: [
+                {
+                    layout: 'layout-single',
+                    photos: [
+                        'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80'
+                    ],
+                    filter: 'filter-normal',
+                    title: '廣東話親友賀卡相冊',
+                    wish: '早晨！食咗飯未啊？祝你天天開心，身體健康！',
+                    stickers: ['🧧', '✨']
+                }
+            ]
+        };
+
+        // Currently selected slot index when selecting photos in editor modal
+        let targetSlotIndex = 0;
+
+        // Uploaded image pool
+        let uploadedImages = [
+            'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1508807526345-15e9b5f4eaff?auto=format&fit=crop&w=800&q=80'
+        ];
+
+        window.onload = function() {
+            renderPresetsUI();
+            renderStickersPicker();
+            renderPhotosGrid();
+            renderActivePage();
+        };
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-amber-400', 'text-amber-400', 'font-bold');
+                el.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            const activeTabBtn = document.getElementById(`tab-${tabName}`);
+            activeTabBtn.classList.remove('border-transparent', 'text-slate-400');
+            activeTabBtn.classList.add('border-amber-400', 'text-amber-400', 'font-bold');
+
+            if (tabName === 'editor') {
+                renderEditorPhotoSlots();
+            } else if (tabName === 'preview') {
+                renderActivePage();
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            const text = document.getElementById('toast-text');
+            text.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function handleImageUpload(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedImages.push(event.target.result);
+                    renderPhotosGrid();
+                    attachImageToCurrentPage(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            showToast(`成功上載 ${files.length} 張相片！`);
+        }
+
+        function handleModalImageUpload(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedImages.push(event.target.result);
+                    renderPhotosGrid();
+                    selectPhotoForSlot(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderPhotosGrid() {
+            const grid = document.getElementById('photos-grid');
+            const countLabel = document.getElementById('photo-count');
+            countLabel.innerText = `${uploadedImages.length} 張相片`;
+
+            if (uploadedImages.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-3 py-8 text-center bg-slate-800/20 rounded-xl border border-dashed border-slate-800 text-slate-500 text-xs">
+                        未有上載任何相片，請先在上載區選取相片。
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = uploadedImages.map((imgSrc, idx) => `
+                <div class="relative group rounded-xl overflow-hidden aspect-square border border-slate-700 bg-slate-900">
+                    <img src="${imgSrc}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                        <button onclick="usePhotoOnPage('${imgSrc}')" class="p-1.5 bg-amber-500 rounded-lg text-slate-950 text-xs shadow hover:scale-110 transition" title="使用於當前頁">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        <button onclick="removePhoto(${idx})" class="p-1.5 bg-red-600 rounded-lg text-white text-xs shadow hover:scale-110 transition" title="刪除">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderEditorPhotoSlots() {
+            const container = document.getElementById('editor-photo-slots');
+            const page = albumState.pages[albumState.currentPageIndex];
+            const maxSlots = page.layout === 'layout-dual' ? 2 : 1;
+
+            let html = '';
+            for (let i = 0; i < maxSlots; i++) {
+                const currentImg = (page.photos && page.photos[i]) ? page.photos[i] : '';
+                html += `
+                    <div onclick="openPhotoPickerModal(${i})" class="relative group rounded-xl border-2 border-dashed ${currentImg ? 'border-amber-400/70' : 'border-slate-700'} aspect-video bg-slate-900 overflow-hidden flex flex-col items-center justify-center cursor-pointer hover:border-amber-400 transition">
+                        ${currentImg ? `
+                            <img src="${currentImg}" class="w-full h-full object-cover ${page.filter || 'filter-normal'}">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
+                                <i class="fa-solid fa-arrows-rotate text-amber-300"></i>
+                                <span>點擊更換位置 ${i + 1}</span>
+                            </div>
+                        ` : `
+                            <i class="fa-solid fa-plus text-amber-400 text-lg mb-1"></i>
+                            <span class="text-[11px] text-slate-300 font-medium">選取相片 ${i + 1}</span>
+                        `}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function openPhotoPickerModal(slotIdx = 0) {
+            targetSlotIndex = slotIdx;
+            const modal = document.getElementById('photo-picker-modal');
+            const grid = document.getElementById('modal-photos-grid');
+
+            grid.innerHTML = uploadedImages.map(imgSrc => `
+                <div onclick="selectPhotoForSlot('${imgSrc}')" class="rounded-lg overflow-hidden border border-slate-700 hover:border-amber-400 cursor-pointer aspect-square bg-slate-950 transition hover:scale-105">
+                    <img src="${imgSrc}" class="w-full h-full object-cover">
+                </div>
+            `).join('');
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closePhotoPickerModal() {
+            const modal = document.getElementById('photo-picker-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function selectPhotoForSlot(imgSrc) {
+            const page = albumState.pages[albumState.currentPageIndex];
+            if (!page.photos) page.photos = [];
+            page.photos[targetSlotIndex] = imgSrc;
+            closePhotoPickerModal();
+            renderEditorPhotoSlots();
+            renderActivePage();
+            showToast(`已成功套用相片至位置 ${targetSlotIndex + 1}！`);
+        }
+
+        function setPhotoFilter(filterClass) {
+            albumState.pages[albumState.currentPageIndex].filter = filterClass;
+            renderEditorPhotoSlots();
+            renderActivePage();
+            showToast('已更新相片濾鏡！');
+        }
+
+        function removePhoto(idx) {
+            uploadedImages.splice(idx, 1);
+            renderPhotosGrid();
+            showToast('已移除相片');
+        }
+
+        function clearAllPhotos() {
+            uploadedImages = [];
+            renderPhotosGrid();
+            showToast('已清空所有相片');
+        }
+
+        function loadDemoPhotos() {
+            uploadedImages = [
+                'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1508807526345-15e9b5f4eaff?auto=format&fit=crop&w=800&q=80',
+                'https://images.unsplash.com/photo-1543783207-ec64e4d95325?auto=format&fit=crop&w=800&q=80'
+            ];
+            albumState.pages[0].photos = [uploadedImages[0]];
+            renderPhotosGrid();
+            renderEditorPhotoSlots();
+            renderActivePage();
+            showToast('已載入廣東話主題範例相片！');
+        }
+
+        function usePhotoOnPage(imgSrc) {
+            attachImageToCurrentPage(imgSrc);
+            showToast('已設定相片至目前頁面');
+        }
+
+        function attachImageToCurrentPage(imgSrc) {
+            const page = albumState.pages[albumState.currentPageIndex];
+            if (!page.photos) page.photos = [];
+            if (page.layout === 'layout-single') {
+                page.photos = [imgSrc];
+            } else {
+                page.photos.push(imgSrc);
+                if (page.photos.length > 2) page.photos = page.photos.slice(-2);
+            }
+            renderEditorPhotoSlots();
+            renderActivePage();
+        }
+
+        function setPageLayout(layoutName) {
+            albumState.pages[albumState.currentPageIndex].layout = layoutName;
+            renderEditorPhotoSlots();
+            renderActivePage();
+            showToast(`已套用新版型！`);
+        }
+
+        function renderActivePage() {
+            const container = document.getElementById('active-page-render');
+            const page = albumState.pages[albumState.currentPageIndex];
+            const photoFilter = page.filter || 'filter-normal';
+            
+            // Set Page theme & font classes
+            container.className = `page-aspect-ratio ${albumState.theme} p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-300`;
+
+            // Photos markup depending on layout
+            let photosMarkup = '';
+            if (!page.photos || page.photos.length === 0) {
+                photosMarkup = `
+                    <div onclick="switchTab('editor')" class="w-full flex-1 bg-black/20 rounded-xl border border-dashed border-white/30 flex flex-col items-center justify-center text-white/60 text-xs cursor-pointer hover:bg-black/30 transition">
+                        <i class="fa-regular fa-image text-xl mb-1"></i>
+                        <span>點擊「選擇相片」匯入照片</span>
+                    </div>
+                `;
+            } else if (page.layout === 'layout-single') {
+                photosMarkup = `
+                    <div class="w-full h-3/5 rounded-2xl overflow-hidden border-2 border-amber-300/40 shadow-xl relative group">
+                        <img src="${page.photos[0]}" class="w-full h-full object-cover ${photoFilter}">
+                    </div>
+                `;
+            } else if (page.layout === 'layout-dual') {
+                const img1 = page.photos[0] || 'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80';
+                const img2 = page.photos[1] || page.photos[0];
+                photosMarkup = `
+                    <div class="w-full h-1/2 grid grid-cols-2 gap-2">
+                        <div class="h-full rounded-xl overflow-hidden border border-amber-300/40 shadow">
+                            <img src="${img1}" class="w-full h-full object-cover ${photoFilter}">
+                        </div>
+                        <div class="h-full rounded-xl overflow-hidden border border-amber-300/40 shadow">
+                            <img src="${img2}" class="w-full h-full object-cover ${photoFilter}">
+                        </div>
+                    </div>
+                `;
+            } else if (page.layout === 'layout-banner') {
+                photosMarkup = `
+                    <div class="w-full h-2/5 rounded-2xl overflow-hidden border border-white/30 shadow-lg">
+                        <img src="${page.photos[0]}" class="w-full h-full object-cover ${photoFilter}">
+                    </div>
+                `;
+            }
+
+            // Stickers Floating Overlay
+            const stickersMarkup = (page.stickers || []).map((s, idx) => `
+                <span class="absolute text-2xl filter drop-shadow animate-bounce" style="top: ${15 + idx * 18}%; right: 12px; animation-duration: ${2.5 + idx}s;">
+                    ${s}
+                </span>
+            `).join('');
+
+            // Wish Text Box Markup
+            const wishTextMarkup = `
+                <div class="bg-black/30 backdrop-blur-sm p-4 rounded-xl border border-white/20 shadow-lg space-y-2 mt-2">
+                    <h3 class="text-xs font-bold text-amber-300 tracking-wider border-b border-amber-300/30 pb-1 flex items-center justify-between">
+                        <span>廣東話祝福 · CANTONESE</span>
+                        <i class="fa-solid fa-heart text-red-400"></i>
+                    </h3>
+                    <p class="text-sm leading-relaxed ${albumState.font} text-amber-100 font-semibold tracking-wide">
+                        ${page.wish || '祝你天天開心，萬事順意！'}
+                    </p>
+                </div>
+            `;
+
+            // Footer branding for PDF album
+            const footerMarkup = `
+                <div class="flex items-center justify-between text-[9px] opacity-70 border-t border-white/20 pt-2">
+                    <span>廣東話親友賀卡相冊</span>
+                    <span>頁 ${albumState.currentPageIndex + 1} / ${albumState.pages.length}</span>
+                </div>
+            `;
+
+            container.innerHTML = `
+                ${stickersMarkup}
+                ${photosMarkup}
+                ${wishTextMarkup}
+                ${footerMarkup}
+            `;
+
+            // Update Page Controls
+            document.getElementById('page-indicator').innerText = `第 ${albumState.currentPageIndex + 1} / ${albumState.pages.length} 頁`;
+            document.getElementById('current-editing-page-label').innerText = `頁面 ${albumState.currentPageIndex + 1}`;
+            document.getElementById('btn-prev-page').disabled = albumState.currentPageIndex === 0;
+            document.getElementById('btn-next-page').disabled = albumState.currentPageIndex === albumState.pages.length - 1;
+        }
+
+        // Utility to convert any URL or cross-origin image to Base64 to guarantee true PDF generation without CORS error
+        function getBase64Image(imgUrl) {
+            return new Promise((resolve) => {
+                if (!imgUrl) {
+                    resolve('');
+                    return;
+                }
+                if (imgUrl.startsWith('data:image')) {
+                    resolve(imgUrl);
+                    return;
+                }
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || 800;
+                    canvas.height = img.naturalHeight || 600;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    try {
+                        const dataURL = canvas.toDataURL('image/jpeg', 0.95);
+                        resolve(dataURL);
+                    } catch(e) {
+                        resolve(imgUrl);
+                    }
+                };
+                img.onerror = function() {
+                    resolve(imgUrl);
+                };
+                img.src = imgUrl;
+            });
+        }
+
+        async function exportToPDF() {
+            const loadingModal = document.getElementById('pdf-loading-modal');
+            const statusText = document.getElementById('pdf-progress-status');
+            
+            loadingModal.classList.remove('opacity-0', 'pointer-events-none');
+            statusText.innerText = '正在處理照片 Base64 數據...';
+
+            try {
+                // Convert all page photos to Base64 first to prevent CORS blank PDF issues
+                const preparedPages = [];
+                for (let i = 0; i < albumState.pages.length; i++) {
+                    statusText.innerText = `正在轉換第 ${i + 1} / ${albumState.pages.length} 頁照片...`;
+                    const p = albumState.pages[i];
+                    const b64Photos = [];
+                    if (p.photos) {
+                        for (const photoUrl of p.photos) {
+                            const b64 = await getBase64Image(photoUrl);
+                            b64Photos.push(b64);
+                        }
+                    }
+                    preparedPages.push({ ...p, b64Photos });
+                }
+
+                statusText.innerText = '正在生成 A4 頁面與編排排版...';
+
+                // Create container element formatted specifically for A4 (794px x 1123px at 96dpi)
+                const exportContainer = document.createElement('div');
+                exportContainer.style.width = '794px';
+                exportContainer.style.background = '#0f172a';
+
+                preparedPages.forEach((page, idx) => {
+                    const pageEl = document.createElement('div');
+                    pageEl.className = `${albumState.theme} p-10 flex flex-col justify-between relative overflow-hidden`;
+                    pageEl.style.width = '794px';
+                    pageEl.style.height = '1123px';
+                    pageEl.style.boxSizing = 'border-box';
+
+                    if (idx < preparedPages.length - 1) {
+                        pageEl.style.pageBreakAfter = 'always';
+                        pageEl.style.breakAfter = 'page';
+                    }
+
+                    const img1 = page.b64Photos[0] || 'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80';
+                    const img2 = page.b64Photos[1] || img1;
+                    const photoFilterClass = page.filter || 'filter-normal';
+
+                    const stickers = (page.stickers || []).map((s, sIdx) => `
+                        <span style="position:absolute; top:${12 + sIdx * 16}%; right:30px; font-size: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">${s}</span>
+                    `).join('');
+
+                    let photoBlock = '';
+                    if (page.layout === 'layout-single') {
+                        photoBlock = `
+                            <div style="height: 60%; width:100%; border-radius: 20px; overflow: hidden; border: 3px solid rgba(245,158,11,0.5); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4);">
+                                <img src="${img1}" class="${photoFilterClass}" style="width:100%; height:100%; object-fit: cover;">
+                            </div>
+                        `;
+                    } else if (page.layout === 'layout-dual') {
+                        photoBlock = `
+                            <div style="height: 55%; width:100%; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div style="border-radius: 16px; overflow: hidden; border: 2px solid rgba(245,158,11,0.5);">
+                                    <img src="${img1}" class="${photoFilterClass}" style="width:100%; height:100%; object-fit: cover;">
+                                </div>
+                                <div style="border-radius: 16px; overflow: hidden; border: 2px solid rgba(245,158,11,0.5);">
+                                    <img src="${img2}" class="${photoFilterClass}" style="width:100%; height:100%; object-fit: cover;">
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        photoBlock = `
+                            <div style="height: 40%; width:100%; border-radius: 20px; overflow: hidden; border: 2px solid rgba(255,255,255,0.4);">
+                                <img src="${img1}" class="${photoFilterClass}" style="width:100%; height:100%; object-fit: cover;">
+                            </div>
+                        `;
+                    }
+
+                    pageEl.innerHTML = `
+                        ${stickers}
+                        ${photoBlock}
+                        <div style="background: rgba(0,0,0,0.45); padding: 28px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.25); margin-top: 16px;">
+                            <div style="color: #fcd34d; font-size: 16px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid rgba(252,211,77,0.3); padding-bottom: 6px; letter-spacing: 1px;">
+                                廣東話祝福 · CANTONESE WISHES
+                            </div>
+                            <div class="${albumState.font}" style="color: #fff8e7; font-size: 26px; font-weight: 600; line-height: 1.6;">
+                                ${page.wish}
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items: center; font-size: 14px; opacity: 0.8; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 12px; margin-top: auto;">
+                            <span>廣東話親友賀卡相冊 · Honor Magic 7 Pro 專屬</span>
+                            <span>第 ${idx + 1} / ${preparedPages.length} 頁</span>
+                        </div>
+                    `;
+                    exportContainer.appendChild(pageEl);
+                });
+
+                document.body.appendChild(exportContainer);
+
+                statusText.innerText = '正在轉譯 PDF 畫布與檔案...';
+
+                const opt = {
+                    margin:       0,
+                    filename:     `Cantonese_Greetings_Album_${Date.now()}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: false },
+                    jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().set(opt).from(exportContainer).save();
+
+                document.body.removeChild(exportContainer);
+                loadingModal.classList.add('opacity-0', 'pointer-events-none');
+                showToast('🎉 高清廣東話賀卡相冊已成功匯出為 PDF 檔案！');
+            } catch (err) {
+                console.error(err);
+                loadingModal.classList.add('opacity-0', 'pointer-events-none');
+                showToast('匯出遇到問題，即將啟動備用系統 PDF 列印下載...');
+                setTimeout(triggerNativePrint, 1000);
+            }
+        }
+
+        function triggerNativePrint() {
+            const printStage = document.getElementById('print-pdf-stage');
+            printStage.innerHTML = '';
+            printStage.classList.remove('hidden');
+
+            albumState.pages.forEach((page, idx) => {
+                const pageEl = document.createElement('div');
+                pageEl.className = `pdf-page-break ${albumState.theme} p-8 min-h-screen flex flex-col justify-between mb-4`;
+                const img1 = (page.photos && page.photos[0]) || 'https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80';
+                pageEl.innerHTML = `
+                    <div class="h-1/2 w-full rounded-2xl overflow-hidden border-2 border-amber-300/40 shadow-xl mb-4">
+                        <img src="${img1}" class="w-full h-full object-cover ${page.filter || 'filter-normal'}">
+                    </div>
+                    <div class="bg-black/40 p-5 rounded-2xl border border-white/20 text-white space-y-2">
+                        <h4 class="text-amber-300 font-bold text-sm">廣東話祝福</h4>
+                        <p class="${albumState.font} text-xl">${page.wish}</p>
+                    </div>
+                    <div class="flex justify-between text-xs opacity-75 pt-4 border-t border-white/20 text-white">
+                        <span>廣東話親友賀卡相冊</span>
+                        <span>頁 ${idx + 1} / ${albumState.pages.length}</span>
+                    </div>
+                `;
+                printStage.appendChild(pageEl);
+            });
+
+            window.print();
+            setTimeout(() => {
+                printStage.classList.add('hidden');
+                printStage.innerHTML = '';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
